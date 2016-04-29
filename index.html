@@ -1,0 +1,1371 @@
+<!-- All rights reserved
+Natasha Armbrust nka8
+Hannah Dunn hld59
+Leopoldo Peña ldp49 -->
+
+
+<html>
+<head>
+	<script src="https://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+	<script src="http://d3js.org/queue.v1.min.js"></script>
+	<script src="http://d3js.org/topojson.v1.min.js"></script>
+	<script src="https://rawgit.com/newrelic-forks/d3-plugins-sankey/master/sankey.js"></script>
+    <script src="https://rawgit.com/misoproject/d3.chart/master/d3.chart.min.js"></script>
+    <script src="https://rawgit.com/q-m/d3.chart.sankey/master/d3.chart.sankey.min.js"></script>
+	<link href='https://fonts.googleapis.com/css?family=Nunito:400,700,300' rel='stylesheet' type='text/css'>
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
+	<link href='https://fonts.googleapis.com/css?family=Raleway' rel='stylesheet' type='text/css'>
+	 <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.0/jquery.min.js"></script>
+	<title>3300Project2</title>
+</head>
+<style>
+	body {
+		font-family: "Nunito";
+		margin: 50px;
+	}
+
+	h1, h2 {
+		font-family: "Raleway", sans-serif;
+		margin-top: 30px;
+		margin-bottom: 30px;
+		text-align: center;
+
+	}
+
+	.counties {
+  		fill: none;
+  		opacity: 1;
+  		/*stroke-linejoin: round;*/
+  		pointer-events: all;
+  		cursor: hand;
+	}
+
+	.counties .hover {
+		opacity: 0;
+	}
+
+	.states {
+	  fill: none;
+	  stroke: #fff;
+	  stroke-linejoin: round;
+	  stroke-width: 1.5px;
+	  stroke-linecap: round;
+	  pointer-events: none;
+	}
+
+	#mapGraph {
+		float: left;
+	}
+
+	.countyPoints .hover {
+		opacity: 1;
+		cursor: hand;
+	}
+
+	#scatterplot {
+		float: left;
+		margin: 0px;
+	}
+
+	.axis text {
+  	font-size: 8pt;
+  	color: #C0C0C0;
+	}
+
+	.axis path {
+		fill: none;
+	  	stroke: #C0C0C0;
+	  	shape-rendering: crispEdges;
+	}
+	.axis line {
+		stroke: #C0C0C0;
+	}
+
+	.btn {
+		font-size: 8pt;
+		text-align: center;
+	}
+
+	p {
+		font-size: 8pt;
+	}
+
+	#pickHealth {
+		border: solid #CCC 2px;
+		padding: 20px;
+	}
+
+	.exploreButtons {
+		text-align: left;
+		padding-left: 20px;
+	}
+
+	#descriptor {
+		margin: 20px;
+	}
+
+	#exploreY {
+		display: none;
+	}
+
+	#exploreX {
+		display: none;
+	}
+
+	#colorScale {
+		margin: 10px;
+		font-size: 8pt;
+  		color: #C0C0C0;
+	}
+	.node rect {
+        stroke-width: 0;
+    }
+    .node text {
+        font-size: 8px;
+    }
+    .link {
+   	    fill: none;
+        stroke: #000;
+        stroke-opacity: .2;
+    }
+
+    #sankey {
+    	text-align: center;
+    	height:400px;
+    	width: 1100px;
+    	margin: auto;
+    }
+
+    #sankey_top_labels {
+    	text-align: center;
+    	height:20px;
+    	width: 1200px;
+    	font-size: 10px;
+    	margin: auto;
+    }
+    #sankey_bottom_labels {
+    	text-align: center;
+    	height:100px;
+    	width: 1200px;
+    	font-size: 10px;
+    	margin: auto;
+    }
+    #sankey_container {
+    	text-align: center;
+    	margin: auto;
+    }
+
+    .paragraph {
+    	font-size: 12pt;
+    	font-weight: lighter;
+    	text-align: center;
+    }
+
+    #county_graph {
+    	height: 200px;
+    	margin-top: 50px;
+    	margin-bottom: 50px;
+    }
+    #county_container {
+    	text-align: center;
+    	margin: auto;
+    }
+
+</style>
+
+
+<body>
+	<h1>What's Income Got to Do With It?</h1>
+
+<!-- __________________ US COUNTY GRAPH __________________________-->
+<!-- acknowledgements for this graph: http://bl.ocks.org/mbostock/4060606 -->
+
+<!-- acknowledgements for the Sankey graph: http://bl.ocks.org/wvengen/cab9b01816490edb7083 -->
+<div class="container">
+
+	<div class="row">
+		<div class = "col-md-2 col-sm-2"></div>
+		<div class = "col-md-8 col-sm-8">
+			<p class = "paragraph">This visualization breaks down United States counties by income and various health stats. Does income have an affect on a county's health and, as a result, its quality of life? Click on a health stat or a county in the graph below and visualize the data for yourself.</p>
+		</div>
+		<div class = "col-md-2 col-sm-2"></div>
+	</div>
+
+
+	<div class="row">
+		<div class = "col-md-4">
+		<h2>Pick a Health Stat</h2>
+		<button class = "btn btn-danger btn-xs " id="hide" type="button">Hide</button>
+		</div>
+		<div class = "col-md-8"></div>
+	</div>
+	<div id="pickHealth">
+	<div class="row">
+		<div class="col-md-2">
+		<button class = "btn btn-default btn-lg btn-block" id="diabetes" type="button">Diabetes</button>
+			<p>Percentage of adults aged 20 and above with diagnosed diabetes</p>
+		</div>
+		<div class="col-md-2">
+		<button class = "btn btn-default btn-lg btn-block" id="std" type="button">STDs</button>
+			<p>Number of newly diagnosed chlamydia cases per 100,000 population</p>
+		</div>
+		<div class="col-md-2">
+		<button class = "btn btn-default btn-lg btn-block" id="smoking" type="button">Smoking</button>
+			<p>Percentage of adults that reported currently smoking</p>
+		</div>
+		<div class="col-md-2">
+		<button class = "btn btn-default btn-lg btn-block" id="drinking" type="button">Drinking</button>
+			<p>Percentage of adults that report excessive drinking</p>
+		</div>
+		<div class="col-md-2">
+		<button class = "btn btn-default btn-lg btn-block" id="car_crash_deaths" type="button">Car Deaths</button>
+			<p>Motor vehicle crash deaths per 100,000 population</p>
+		</div>
+		<div class="col-md-2">
+		<button class = "btn btn-default btn-lg btn-block" id="homicide" type="button">Homicide</button>
+			<p>Number or deaths due to homicide per 100,000 population</p>
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-md-2">
+		<button class = "btn btn-default btn-lg btn-block" id="health_care_cost" type="button">Health Costs</button>
+			<p>Amount of price-adjusted Medicare reimbursements per enrollee</p>
+		</div>
+		<div class="col-md-2">
+		<button class = "btn btn-default btn-lg btn-block" id="hiv" type="button">HIV</button>
+			<p>Number of persons living with a diagnosis of human immunodeficiency virus (HIV) infection per 100,000 population</p>
+		</div>
+		<div class="col-md-2">
+		<button class = "btn btn-default btn-lg btn-block" id="crime" type="button">Crime</button>
+			<p>Number of reported violent crime offenses per 100,000 population</p>
+		</div>
+		<div class="col-md-2">
+		<button class = "btn btn-default btn-lg btn-block" id="alcohol_driving_deaths" type="button">Alcohol Deaths</button>
+			<p>Percentage of driving deaths with alcohol involvement</p>
+		</div>
+		<div class="col-md-1"></div>
+	</div>
+	</div>
+
+	<div class="row">
+		<div id="descriptor">Click A Health Stat or a County!</div>
+	</div>
+
+	
+	<div id="colorScale"></div>
+
+	<div class="row exploreButtons">
+		
+		<button class = "btn btn-primary btn-lg" id="exploreY" type="button">Explore Levels of Income</button>
+		<button class = "btn btn-primary btn-lg" id="exploreX" type="button">Explore Health Stat</button>
+	</div>
+
+	
+	</div>
+
+	<div class="row">
+
+		<div id = "scatterplot"></div>
+
+		<div id="map_graph"></div>
+
+	</div>
+
+	<div class = "row">
+		<div id = "county_container">
+			<div class="col-md-12" id="county_graph"></div>
+		</div>
+	</div>
+
+	<h2>Let's take a closer look at the Richest and Poorest Counties</h2>
+
+	<div class="row">
+		<div class = "col-md-2 col-sm-2"></div>
+		<div class = "col-md-8 col-sm-8">
+			<p class = "paragraph">This visualization takes the nine richest and poorest counties in America and ranks the counties in each health stat. We used this visualization to see which health stats are most impacted by income or not impacted at all, and to show that richer counties are not always better off.</p>
+		</div>
+		<div class = "col-md-2 col-sm-2"></div>
+	</div>
+	<div class = "row">
+		<div id="sankey_container">
+			<div id = "sankey_top_labels"></div>
+			<div id = "sankey"></div>
+			<div id = "sankey_bottom_labels"></div>
+		</div>
+	</div>
+
+	<h2>Trends to Note</h2>
+
+	<div class="row">
+		<div class = "col-md-2 col-sm-2"></div>
+		<div class = "col-md-8 col-sm-8">
+			<ul class = "list">
+				<li>The highest value of every negative health stat has an income less than 50,000 except for alcohol realted driving deaths</li>
+				<li>Diabetes is most prevelant down south in low income areas</li>
+				<li>The highest income counties have more excessive drinking than the lowest income counties</li>
+				<li>Health care costs show a trend to be higher in the South Western portion of the United States</li>
+				<li>Excessive Drinking occurs most in colder areas around Michigan and Alaska</li>
+			</ul>
+		</div>
+		<div class = "col-md-2 col-sm-2"></div>
+	</div>
+
+<script>
+
+	var reds = ["#fff7ec", "#fee8c8", "#fdd49e", "#fdbb84", "#fc8d59", "#ef6548", "#d7301f", "#b30000", "#7f0000"];
+	var yellow = ["#ffffe5","#f7fcb9","#d9f0a3","#addd8e","#78c679","#41ab5d","#238443","#006837","#004529"];
+	var yellowBlue = ["#ffffd9","#edf8b1","#c7e9b4","#7fcdbb","#41b6c4","#1d91c0","#225ea8","#253494","#081d58"];
+	var greenBlue = ["#f7fcf0","#e0f3db","#ccebc5","#a8ddb5","#7bccc4","#4eb3d3","#2b8cbe","#0868ac","#084081"];
+	var blueGreen = ["#f7fcfd","#e5f5f9","#ccece6","#99d8c9","#66c2a4","#41ae76","#238b45","#006d2c","#00441b"];
+	var purple = ["#fff7fb","#ece2f0","#d0d1e6","#a6bddb","#67a9cf","#3690c0","#02818a","#016c59","#014636"];
+	var purpleBlue = ["#fff7fb","#ece7f2","#d0d1e6","#a6bddb","#74a9cf","#3690c0","#0570b0","#045a8d","#023858"];
+	var bluePurple = ["#f7fcfd","#e0ecf4","#bfd3e6","#9ebcda","#8c96c6","#8c6bb1","#88419d","#810f7c","#4d004b"];
+	var redPurple = ["#fff7f3","#fde0dd","#fcc5c0","#fa9fb5","#f768a1","#dd3497","#ae017e","#7a0177","#49006a"];
+	var yellowOrangeBlue = ["#ffffe5","#fff7bc","#fee391","#fec44f","#fe9929","#ec7014","#cc4c02","#993404","#662506"];
+	var incomeColor = ["#ffffff","#f0f0f0","#d9d9d9","#bdbdbd","#969696","#737373","#525252","#252525","#000000"];
+
+	var height = 500;
+	var width = 550;
+	var padding = 0;
+	var svg = d3.select("#map_graph").append("svg").attr("height", height).attr("width", width);
+	var map = d3.map();
+	var counties = {};
+	var states = {};
+	var us;
+	var arrayOfData = [];
+	var projection = d3.geo.albersUsa()
+    .scale(1280/2 + 100)
+    .translate([width / 2, height / 2]);
+    var path = d3.geo.path()
+	    .projection(projection);
+	var exploreY = false;
+	var exploreX = false;
+	var globalXScale;
+	var hasBeenClicked = 0;
+
+	queue()
+    .defer(d3.json, "us.json")
+    .defer(d3.csv, "CountyHealthData.csv", function (county) {
+			var id = Number(county["geo"].substr(7, 11));
+			var object = {
+					year: county["year"],
+					name: county["geo_name"],
+					smoking: 100 * county["adult_smoking"],
+					drinking: 100 * county["excessive_drinking"],
+					car_crash_deaths: county["motor_vehicle_crash_deaths"],
+					homicide: county["homicide_rate"],
+					std: county["sexually_transmitted_infections"],
+					health_care_cost: county["health_care_costs"],
+					diabetes: 100 * county["diabetes"],
+					hiv: county["hiv_prevalence_rate"],
+					crime: county["violent_crime"],
+					alcohol_driving_deaths: 100 * county["alcoholimpaired_driving_deaths"],
+					income: "0",
+					income_ranking: "0",
+					geo: county["geo"]
+				};
+			counties[id] = object;
+    })
+    .defer(d3.csv, "CountyIncomeData.csv")
+   	.awaitAll(function(error, data) {
+   		if (error){	console.log(error); }
+
+   		//ScaterPlot Initilization
+		var widthScatterPlot = 650;
+		var heightScatterPlot = 500;
+		var paddingScatterPlot = 80;
+		var svgScatterPlot =  d3.select("#scatterplot").append("svg").attr("width", widthScatterPlot).attr("height", heightScatterPlot).on("mousemove", function () {
+			if (exploreY) {
+				svgScatterPlot.selectAll(".explore").remove();
+				var x = d3.mouse(this)[0];
+				var y = d3.mouse(this)[1] - 35;
+				if (y < paddingScatterPlot) {
+					y = paddingScatterPlot;
+				} else if (y > (heightScatterPlot - paddingScatterPlot - 70)) {
+					y = heightScatterPlot - paddingScatterPlot - 70;
+				}
+				svgScatterPlot.append("rect").attr("class", "explore").attr("x", paddingScatterPlot).attr("y", y).attr("width", widthScatterPlot - 2*paddingScatterPlot).attr("height", 70).attr("stroke", "none").attr("fill", "#ccc").attr("opacity", .2);
+				exploreChangeFill(x, y, 70);
+			} else if (exploreX) {
+				svgScatterPlot.selectAll(".exploreX").remove();
+				var x = d3.mouse(this)[0] - 35;
+				var y = d3.mouse(this)[1];
+				if (x < paddingScatterPlot) {
+					x = paddingScatterPlot;
+				} else if (x > (widthScatterPlot - paddingScatterPlot - 70)) {
+					x = widthScatterPlot - paddingScatterPlot - 70;
+				}
+				svgScatterPlot.append("rect").attr("class", "exploreX").attr("x", x).attr("y", paddingScatterPlot).attr("width", 70).attr("height", heightScatterPlot - 2*paddingScatterPlot).attr("stroke", "none").attr("fill", "#ccc").attr("opacity", .2);
+				exploreChangeFill(x, y, 70);
+			}
+		});
+
+   		
+		us = data[0];
+
+		income = data[2];
+
+		income.forEach(function (county) {
+    		var id = Number(county["geo"].substr(7, 11));
+    		if (counties[id] != undefined) {
+   				counties[id]["income"] = county["income"];
+   				counties[id]["income_ranking"] = county["income_ranking"]
+   				arrayOfData.push(counties[id]);
+   			}
+   		});
+
+   		setUpSankey();
+
+		//maps our topopjson IDs to countyIDs in counties object! We use the level parameter
+		//to look at all incomes above the level we are looking at
+		var minIncome = d3.min(arrayOfData.map( function (county) { if (county.income != "None") { return Number(county.income); } }));
+		var maxIncome = d3.max(arrayOfData.map( function (county) { if (county.income != "None") { return Number(county.income); } }));
+
+
+		function findEquivlant(countyID, level) {
+			var county = counties[countyID];
+			if (county != undefined && (Number(county.income) <= (level + 10000) && Number(county.income) >= (level - 10000))) {
+				return county;
+			} else {
+				return false;
+			}
+		}
+
+		function findAllCounties(countyID) {
+			var county = counties[countyID];
+			if (county != undefined) {
+				return county;
+			} else {
+				return false;
+			}
+		}
+
+		//THE PROPERTY MUST BE A STRING EQUIVLANT TO THE HEALTH STAT WE WANT TO GET IN OUR OBJECT
+		//ex: "diabetes" would get object.diabetes and "car_crash_deaths" would get object.car_crash_deaths
+		function createColorScale (property, showScale) {
+			var max;
+			var min;
+			var colorArray;
+			if (showScale) {
+				d3.select("#colorScale").select("svg").remove();
+				var svg = d3.select("#colorScale").append("svg").attr("width", 700).attr("height", 50);
+			}
+			var round = 2;
+			switch(property) {
+				case "income":
+					min = d3.min(arrayOfData.map( function (county) { return Number(county.income); }));
+					max = d3.max(arrayOfData.map( function (county) { return Number(county.income); }));
+					colorArray = incomeColor;
+					break;
+
+				case "diabetes":
+					min = d3.min(arrayOfData.map( function (county) { return Number(county.diabetes); }));
+					max = d3.max(arrayOfData.map( function (county) { return Number(county.diabetes); }));
+					colorArray = reds;
+					break;
+				case "std":
+					min = d3.min(arrayOfData.map( function (county) { if (county.std != "None") { return Number(county.std); } }));
+					max = d3.max(arrayOfData.map( function (county) { if (county.std != "None") { return Number(county.std); } }));
+					colorArray = yellow;
+					round = 0;
+					break;
+				case "smoking":
+					min = d3.min(arrayOfData.map( function (county) { if (county.smoking != "None") { return Number(county.smoking); } }));
+					max = d3.max(arrayOfData.map( function (county) { if (county.smoking != "None") { return Number(county.smoking); } }));
+					colorArray = yellowBlue;
+					break;
+				case "drinking":
+					min = d3.min(arrayOfData.map( function (county) { if (county.drinking != "None") { return Number(county.drinking); } }));
+					max = d3.max(arrayOfData.map( function (county) { if (county.drinking != "None") { return Number(county.drinking); } }));
+					colorArray = greenBlue;
+					break;
+				case "homicide":
+					min = d3.min(arrayOfData.map( function (county) { if (county.homicide != "None") { return Number(county.homicide); } }));
+					max = d3.max(arrayOfData.map( function (county) { if (county.homicide != "None") { return Number(county.homicide); } }));
+					colorArray = blueGreen;
+					round = 0;
+					break;
+				case "car_crash_deaths":
+					min = d3.min(arrayOfData.map( function (county) { if (county.car_crash_deaths != "None") { return Number(county.car_crash_deaths); } }));
+					max = d3.max(arrayOfData.map( function (county) { if (county.car_crash_deaths != "None") { return Number(county.car_crash_deaths); } }));
+					colorArray = purple;
+					round = 0;
+					break;
+				case "health_care_cost":
+					min = d3.min(arrayOfData.map( function (county) { if (county.health_care_cost != "None") { return Number(county.health_care_cost); } }));
+					max = d3.max(arrayOfData.map( function (county) { if (county.health_care_cost != "None") { return Number(county.health_care_cost); } }));
+					colorArray = purpleBlue;
+					round = 0;
+					break;
+				case "hiv":
+					min = d3.min(arrayOfData.map( function (county) { if (county.hiv != "None") { return Number(county.hiv); } }));
+					max = d3.max(arrayOfData.map( function (county) { if (county.hiv != "None") { return Number(county.hiv); } }));
+					colorArray = bluePurple;
+					round = 0;
+					break;
+				case "crime":
+					min = d3.min(arrayOfData.map( function (county) { if (county.crime != "None") { return Number(county.crime); } }));
+					max = d3.max(arrayOfData.map( function (county) { if (county.crime != "None") { return Number(county.crime); } }));
+					colorArray = redPurple;
+					round = 0;
+					break;
+				case "alcohol_driving_deaths":
+					min = d3.min(arrayOfData.map( function (county) { if (county.alcohol_driving_deaths != "None") { return Number(county.alcohol_driving_deaths); } }));
+					max = d3.max(arrayOfData.map( function (county) { if (county.alcohol_driving_deaths != "None") { return Number(county.alcohol_driving_deaths); } }));
+					colorArray = yellowOrangeBlue;
+					break;
+			}
+			//create Color Scale!
+			var intervals = [];
+			var add = (max - min) / 9;
+			var start = 0;
+			var x = 10;
+			for(var i = 0; i < 9; i++) {
+				if (showScale) {
+					svg.append("rect").attr("x", x).attr("y", 0).attr("width", 55).attr("height", 20).attr("fill", colorArray[i]);
+					svg.append("text").attr("x", x).attr("y", 40).attr("dx", -5).text(d3.round(start, round));
+				}
+				intervals.push(start);
+				start = start + add;
+				x += 55;
+			}
+
+			if (showScale) {
+				svg.append("text").attr("x", x).attr("y", 40).attr("dx", -5).text(d3.round(start, round));
+			}
+			var colorScale = d3.scale.linear().domain(intervals).range(colorArray);
+			if (showScale) {
+				setUpScatterPlot(min, max, colorScale, property);
+			}
+			return colorScale;
+		}
+
+		function getDescriptiveText(property) {
+			var propertyValue;
+			switch(property) {
+				case "diabetes":
+					propertyValue = "Percentage of adults aged 20 and above with diagnosed diabetes";
+					break
+				case "std":
+					propertyValue = "Number of newly diagnosed chlamydia cases per 100,000 population";
+					break;
+				case "smoking":
+					propertyValue = "Percentage of adults that reported currently smoking";
+					break;
+				case "drinking":
+					propertyValue = "Percentage of adults that report excessive drinking"
+					break;
+				case "homicide":
+					propertyValue = "Number or deaths due to homicide per 100,000 population";
+					break;
+				case "car_crash_deaths":
+					propertyValue = "Motor vehicle crash deaths per 100,000 population";
+					break;
+				case "health_care_cost":
+					propertyValue = "Amount of price-adjusted Medicare reimbursements per enrollee";
+					break;
+				case "hiv":
+					propertyValue = "Number of persons living with a diagnosis of human immunodeficiency virus (HIV) infection per 100,000 population";
+					break;
+				case "crime":
+					propertyValue = "Number of reported violent crime offenses per 100,000 population"
+					break;
+				case "alcohol_driving_deaths":
+					propertyValue = "Percentage of driving deaths with alcohol involvement";
+					break;
+			}
+			return propertyValue;
+		}
+
+		function getToolTipText(property) {
+			var propertyValue;
+			switch(property) {
+				case "diabetes":
+					propertyValue = "Diabetes";
+					break
+				case "std":
+					propertyValue = "STDs";
+					break;
+				case "smoking":
+					propertyValue = "Smoking";
+					break;
+				case "drinking":
+					propertyValue = "Drinking"
+					break;
+				case "homicide":
+					propertyValue = "Homicide";
+					break;
+				case "car_crash_deaths":
+					propertyValue = "Car Deaths"
+					break;
+				case "health_care_cost":
+					propertyValue = "Health Costs";
+					break;
+				case "hiv":
+					propertyValue = "HIV";
+					break;
+				case "crime":
+					propertyValue = "Crime"
+					break;
+				case "alcohol_driving_deaths":
+					propertyValue = "Alcohol Deaths";
+					break;
+			}
+			return propertyValue;
+
+		}
+
+		//gets the value of the county with a property
+		//county is a county ID and property is a string equivlant to what property we want
+		//ex: (50321, "diabeted") would give us the value .21
+		function getProperty(county, property) {
+			var propertyValue;
+			switch(property) {
+				case "diabetes":
+					propertyValue = county.diabetes;
+					break
+				case "std":
+					propertyValue = county.std;
+					break;
+				case "smoking":
+					propertyValue = county.smoking;
+					break;
+				case "drinking":
+					propertyValue = county.drinking;
+					break;
+				case "homicide":
+					propertyValue = county.homicide;
+					break;
+				case "car_crash_deaths":
+					propertyValue = county.car_crash_deaths;
+					break;
+				case "health_care_cost":
+					propertyValue = county.health_care_cost;
+					break;
+				case "hiv":
+					propertyValue = county.hiv;
+					break;
+				case "crime":
+					propertyValue = county.crime;
+					break;
+				case "alcohol_driving_deaths":
+					propertyValue = county.alcohol_driving_deaths;
+					break;
+			}
+			return propertyValue;
+		}
+
+		var colorScale;
+		var globalProperty;
+
+		//see counties
+		var tooltip = d3.select("body")
+		    .append("div")
+		    .style("position", "absolute")
+		    .style("z-index", "10")
+		    .style("width", "100px")
+		    .style("border-radius", "4px")
+		    .style("border", "solid black 1px")
+		    .style("opacity", "1")
+		    .style("background-color", "#fff")
+		    .style("visibility", "hidden")
+		    .style("font-size", "8pt")
+		    .style("font", "Helvetica")
+		    .style("color", "#000")
+		    .style("padding", "2px");
+
+
+		//load original data and create hover/click functionality
+		svg.append("g")
+				.attr("class", "counties")
+				.selectAll("path")
+				.data(topojson.feature(us, us.objects.counties).features)
+				.enter().append("path")
+				.on("click", function (d) {
+					//WHEN A COUNTY IS CLICKED ON!
+					createCountyGraph(findAllCounties(d.id));
+				})
+				.attr("d", path)
+				.attr("fill", "#D3D3D3")
+				.on("mouseover", function(d) {
+					var allCounties = findAllCounties(d.id);
+					tooltip.style("visibility", "visible");
+					tooltip.text(allCounties.name + ", Income: " + allCounties.income);
+					d3.select(this).classed("hover", true);
+				})
+				.on("mousemove", function () {
+					tooltip.style("top",(d3.event.pageY-10)+"px").style("left",(d3.event.pageX+10)+"px");
+				})
+				.on("mouseout", function() {
+					d3.select(this).classed("hover", false);
+					tooltip.style("visibility", "hidden");
+				});
+
+		svg.append("path")
+			.datum(topojson.mesh(us, us.objects.states, function(a, b) { return a !== b; }))
+			.attr("class", "states")
+			.attr("d", path);
+
+		//slider
+		var globalSliderValue = maxIncome;
+
+		//reload data
+		function reloadData(property){
+			exploreX = false;
+			exploreY = false;
+			//slider.value(maxIncome);
+			globalProperty = property;
+			colorScale = createColorScale(property, true);
+			changeFill(maxIncome);
+			svg.select(".counties").selectAll("path").on("mouseover", function(d) {
+				var allCounties = findAllCounties(d.id);
+				tooltip.style("visibility", "visible");
+				if (getProperty(allCounties, property) == null || isNaN(getProperty(allCounties,property))) {
+					var formattedProperty = "None";
+				}
+				else {
+					var formattedProperty =  d3.round(getProperty(allCounties, property),4);
+				}
+				tooltip.text(allCounties.name + ", Income: " + allCounties.income + ", " + getToolTipText(property) + ": " + formattedProperty);
+				d3.select(this).classed("hover", true);
+				})
+			.on("mousemove", function () {
+				tooltip.style("top",(d3.event.pageY-10)+"px").style("left",(d3.event.pageX+10)+"px");
+			})
+			.on("mouseout", function() {
+				d3.select(this).classed("hover", false);
+				tooltip.style("visibility", "hidden");
+				})
+		}
+
+
+		function changeFill(value)	{
+			//colorScale = createColorScale(property);
+			if (globalProperty == undefined) {
+				return;
+			}
+
+			svgScatterPlot.select(".countyPoints").selectAll("circle").transition().duration(500).attr("fill", function (d) {
+				var data = getProperty(d, globalProperty);
+				if (isNaN(data)) {
+					return "none";
+				}
+				var color = colorScale(data);
+				if (color == "#000" || color == "#NaNNaNNaN") {
+					return "none";
+				} else {
+					return color;
+				}
+			});
+			
+			svg.select(".counties").selectAll("path").transition().duration(500).attr("fill", function (d) {
+				var object = findAllCounties(d.id);
+				if (object == false) {
+					return "#D3D3D3";
+				} else {
+					var color = colorScale(getProperty(object, globalProperty));
+					if (color == "#000" || color == "#NaNNaNNaN") {
+						return "#D3D3D3";
+					} else {
+						return color;
+					}
+				}
+			});
+		}
+		
+		
+		function exploreChangeFill(x,y,r) {
+			var yScale = d3.scale.linear().domain([minIncome,maxIncome]).range([heightScatterPlot - paddingScatterPlot, paddingScatterPlot]);
+			if (exploreY) {
+				svgScatterPlot.select(".countyPoints").selectAll("circle").attr("fill", function (d) {
+					var data = getProperty(d, globalProperty);
+					if (isNaN(data)) {
+						return "none";
+					}
+					if (d.income <= yScale.invert(y) && d.income >= yScale.invert(y + r)){
+						var color = colorScale(data);
+						if (color == "#000" || color == "#NaNNaNNaN") {
+							return "none";
+						} else {
+							return color;
+						}
+					} else {
+						return "#D3D3D3";
+					}
+				});
+				
+				svg.select(".counties").selectAll("path").transition().duration(500).attr("fill", function (d) {
+					var object = findAllCounties(d.id);
+					if (object == false) {
+						return "#D3D3D3";
+					} else {
+						if (object.income <= yScale.invert(y) && object.income >= yScale.invert(y + r)) {
+							var color = colorScale(getProperty(object, globalProperty));
+							if (color == "#000" || color == "#NaNNaNNaN") {
+								return "#D3D3D3";
+							} else {
+								return color;
+							}
+						} else {
+							return "#D3D3D3";
+						}
+					}
+				});
+			} else if (exploreX) {
+				svgScatterPlot.select(".countyPoints").selectAll("circle").attr("fill", function (d) {
+					var data = getProperty(d, globalProperty);
+					if (isNaN(data)) {
+						return "none";
+					}
+					if (data <= globalXScale.invert(x + r) && data >= globalXScale.invert(x)){
+						var color = colorScale(data);
+						if (color == "#000" || color == "#NaNNaNNaN") {
+							return "none";
+						} else {
+							return color;
+						}
+					} else {
+						return "#D3D3D3";
+					}
+				});
+				
+				svg.select(".counties").selectAll("path").transition().duration(500).attr("fill", function (d) {
+					var object = findAllCounties(d.id);
+					var data =  getProperty(object, globalProperty);
+					if (object == false) {
+						return "#D3D3D3";
+					} else {
+						if (data <= globalXScale.invert(x + r) && data >= globalXScale.invert(x)){
+							var color = colorScale(getProperty(object, globalProperty));
+							if (color == "#000" || color == "#NaNNaNNaN") {
+								return "#D3D3D3";
+							} else {
+								return color;
+							}
+						} else {
+							return "#D3D3D3";
+						}
+					}
+				});
+
+			} else {
+				changeFill(maxIncome);
+			}
+		}
+		//Set Up Slider --- acknowledgements go to http://bl.ocks.org/cmdoptesc/fc0e318ce7992bed7ca8
+		
+		d3.select("#diabetes").on("click", function () {
+			$("#descriptor").text(getToolTipText("diabetes") + ": " + getDescriptiveText("diabetes"));
+			$("#exploreY").show();
+			$("#exploreX").show();
+			reloadData("diabetes");});
+		d3.select("#std").on("click", function () {
+			$("#descriptor").text(getToolTipText("std") + ": " + getDescriptiveText("std"));
+			$("#exploreY").show();
+			$("#exploreX").show();
+			reloadData("std");});
+		d3.select("#smoking").on("click", function () {
+			$("#descriptor").text(getToolTipText("smoking") + ": " + getDescriptiveText("smoking"));
+			$("#exploreY").show();
+			$("#exploreX").show();
+			reloadData("smoking");});
+		d3.select("#drinking").on("click", function () {
+			$("#descriptor").text(getToolTipText("drinking") + ": " + getDescriptiveText("drinking"));
+			$("#exploreY").show();
+			$("#exploreX").show();
+			reloadData("drinking");});
+		d3.select("#car_crash_deaths").on("click", function () {
+			$("#descriptor").text(getToolTipText("car_crash_deaths") + ": " + getDescriptiveText("car_crash_deaths"));
+			$("#exploreY").show();
+			$("#exploreX").show();
+			reloadData("car_crash_deaths");});
+		d3.select("#homicide").on("click", function () {
+			$("#descriptor").text(getToolTipText("homicide") + ": " + getDescriptiveText("homicide"));
+			$("#exploreY").show();
+			$("#exploreX").show();
+			reloadData("homicide");});
+		d3.select("#health_care_cost").on("click", function () {
+			$("#descriptor").text(getToolTipText("health_care_cost") + ": " + getDescriptiveText("health_care_cost"));
+			$("#exploreY").show();
+			$("#exploreX").show();
+			reloadData("health_care_cost");});
+		d3.select("#hiv").on("click", function () {
+			$("#descriptor").text(getToolTipText("hiv") + ": " + getDescriptiveText("hiv"));
+			$("#exploreY").show();
+			$("#exploreX").show();
+			reloadData("hiv");});
+		d3.select("#crime").on("click", function () {
+			$("#descriptor").text(getToolTipText("crime") + ": " + getDescriptiveText("crime"));
+			$("#exploreY").show();
+			$("#exploreX").show();
+			reloadData("crime");});
+		d3.select("#alcohol_driving_deaths").on("click", function () {
+			$("#descriptor").text(getToolTipText("alcohol_driving_deaths") + ": " + getDescriptiveText("alcohol_driving_deaths"));
+			$("#exploreY").show();
+			$("#exploreX").show();
+			reloadData("alcohol_driving_deaths");});
+		d3.select("#hide").on("click", function() {
+			$("#pickHealth").toggle();
+			if ($("#hide").text() == "Hide") {
+				$("#hide").text("Show");
+			} else {
+				$("#hide").text("Hide");
+			}
+			
+		});
+
+		var clicked = 0;
+		d3.select("#exploreY").on("click", function () {
+			if (clicked %2 == 0) {
+				changeFill(maxIncome);
+				exploreY = true;
+				if (exploreX == true) {
+					changeFill(maxIncome);
+					svgScatterPlot.selectAll(".exploreX").remove();
+					exploreX = false;
+				}
+				
+			} else {
+				svgScatterPlot.selectAll(".explore").remove();
+				exploreY = false;
+				changeFill(maxIncome);
+			}
+			clicked++;
+		});
+
+		var clicked2 = 0;
+		d3.select("#exploreX").on("click", function () {
+			if (clicked2 % 2 == 0) {
+				changeFill(maxIncome);
+				exploreX = true;
+				if (exploreY == true){
+					exploreY = false;
+					svgScatterPlot.selectAll(".explore").remove();
+				}
+			} else {
+				svgScatterPlot.selectAll(".exploreX").remove();
+				exploreX = false;
+				changeFill(maxIncome);
+			}
+			clicked2++;
+		});
+
+
+		//SET UP SCATTERPLOT
+		function setUpScatterPlot(min, max, scale, property) {
+			svgScatterPlot.selectAll("*").remove();
+
+			var yScale = d3.scale.linear().domain([minIncome,maxIncome]).range([heightScatterPlot - paddingScatterPlot, paddingScatterPlot]);
+			var xScale = d3.scale.linear().domain([min, max]).range([paddingScatterPlot, widthScatterPlot - paddingScatterPlot]);
+
+			globalXScale = xScale;
+			var xAxis = d3.svg.axis()
+						.scale(xScale).orient("bottom");
+
+			var yAxis = d3.svg.axis()
+						.scale(yScale).orient("left");
+
+			svgScatterPlot.append("g")
+				.attr("transform", "translate(0, " + (heightScatterPlot - paddingScatterPlot) + ")")
+				.attr("class", "axis")
+				.call(xAxis).append("text")
+				.style("text-anchor", "middle")
+				.attr("x", (widthScatterPlot/2)).attr("y", paddingScatterPlot - 30)
+				.text(getDescriptiveText(property));
+
+			svgScatterPlot.append("g")
+				.attr("transform", "translate(" + paddingScatterPlot + ",0)")
+				.attr("class", "axis").call(yAxis)
+				.append("text").attr("transform", "rotate(-90)")
+				.style("text-anchor", "middle")
+				.attr("x", -heightScatterPlot/2)
+				.attr("y", -paddingScatterPlot/1.5)
+				.text("Median Household Income");
+
+			var fill;
+			svgScatterPlot.append("g").attr("class", "countyPoints")
+				.selectAll("circle")
+				.data(arrayOfData)
+				.enter()
+				.append("circle")
+				.on("mouseover", function(d) {
+					d3.select(this).attr("r", 5);
+					if (!exploreX && !exploreY) {
+						tooltip.style("visibility", "visible");
+						tooltip.text(d.name + ", Income: " + d.income + ", " +getToolTipText(property) + ": " + d3.round(getProperty(d, property),3));
+					}
+					d3.select(this).classed("hover", true);
+
+				})
+				.on("click", function(d) {
+					createCountyGraph(d);
+				})
+				.on("mousemove", function() {
+					if (!exploreX && !exploreY) {
+					tooltip.style("top",(d3.event.pageY-10)+"px").style("left",(d3.event.pageX+10)+"px");
+					}
+				})
+				.on("mouseout", function() {
+					tooltip.style("visibility", "hidden");
+					d3.select(this).attr("r", 2);
+					d3.select(this).classed("hover", false);
+				})
+				.attr("r", 2)
+				.attr("cx", function (d) {
+					var value = getProperty(d, property);
+					if (isNaN(value)) {
+						return;
+					}
+					return xScale(value) })
+				.attr("cy", function (d) {
+					return yScale(d.income) })
+				.attr("fill", function (d) {
+					var data = getProperty(d, property);
+					if (isNaN(data)) {
+						return "none";
+					}
+					var color = scale(data);
+					if (color == "#000" || color == "#NaNNaNNaN") {
+						return "none";
+					} else {
+						return "#D3D3D3";
+					}
+
+				})
+				.attr("stroke", "none");
+		}
+
+
+		function setUpSankey() {
+	     	var top_labels = d3.select("#sankey_top_labels").append("svg").attr("width",1200).attr("height",20);
+	     	var g1 = top_labels.append("g");
+	     	var bottom_labels = d3.select("#sankey_bottom_labels").append("svg").attr("width",1200).attr("height",100);
+	     	var g2 = bottom_labels.append("g");
+	     	var top_label_array = ["High Income", "Low Diabetes", "Low STDs", "Low Smoking", "Low Drinking", "Low Car Deaths", "Low Homicides", "Low Health Cost", "Low HIV", "Low Crime", "Low Alcohol Death"];
+	     	top_label_array.forEach(function(label, i) {
+	     		g1.append("text")
+	     			.attr("x", i*(111))
+	     			.attr("y", 10)
+	     			.text(label)
+	     			.style("text-anchor", "left");
+	     	});
+	     	var bottom_label_array = ["Low Income", "High Diabetes", "High STDs", "High Smoking", "High Drinking", "High Car Deaths", "High Homicides", "High Health Cost", "High HIV", "High Crime", "High Alcohol Death"];
+	     	bottom_label_array.forEach(function(label, i) {
+	     		g2.append("text")
+	     			.attr("x", i*(111))
+	     			.attr("y", 10)
+	     			.text(label)
+	     			.style("text-anchor", "left");
+	     	});
+
+	     	g2.append("rect").attr("x", 450).attr("y", 60).attr("width", 100).attr("height", 15).attr("fill", '#64063E');
+			g2.append("text").attr("x", 500).attr("y", 90).attr("dx", 0).style("text-anchor", "middle").text("Richest Counties");
+			g2.append("rect").attr("x", 550).attr("y", 60).attr("width", 100).attr("height", 15).attr("fill", '#924712');
+			g2.append("text").attr("x", 600).attr("y", 90).attr("dx", 0).style("text-anchor", "middle").text("Poorest Counties");
+			g2.append("rect").attr("x", 650).attr("y", 60).attr("width", 100).attr("height", 15).attr("fill", '#D3D3D3');
+			g2.append("text").attr("x", 700).attr("y", 90).attr("dx", 0).style("text-anchor", "middle").text("No Data");
+
+	     d3.json("sankey.json", function(error, json) {
+	        var chart = d3.select("#sankey").append("svg").attr("width", 1100).chart("Sankey.Path");
+	        chart.name(label)
+	          	.colorNodes(function(name, node) {
+					return color(node);
+	          	})
+	          	.colorLinks(function(link) {
+	            	if (color(link.target) == color(link.source)) {
+	            		return color(link.target, 1);
+	            	}
+	            	else {
+	            		return "#D3D3D3";
+	            	}
+	          	})
+	          	.nodeWidth(8)
+	          	.nodePadding(12)
+	          	.on('node:mouseover', function(node) {
+	          		console.log("true");
+	          		var value;
+	          		if (node.vals == null || isNaN(node.vals)) {
+	          			value = "None";
+	          		}
+	          		else {
+	          			value = Math.floor(node.vals*100)/100;
+	          		}
+					tooltip.style("visibility", "visible");
+					tooltip.text(node.name + ", " + node.property + ": " + value);
+					tooltip.style("top",(d3.event.pageY-10)+"px").style("left",(d3.event.pageX+10)+"px");
+				})
+				.on("node:mouseout", function() {
+					tooltip.style("visibility", "hidden");
+				})
+	          	.spread(true)
+	          	.iterations(0)
+	          	.draw(json);
+
+	        function label(node) {
+	          	if (node.label) {
+	          		return node.name;
+	          	}
+	          	else {
+	          		return "";
+	          	}
+	        }
+	        function color(node) {
+	        	var arrayLength = arrayOfData.length;
+				var parsedArray = arrayOfData.slice(0,9).concat(arrayOfData.slice(arrayLength-9, arrayLength));
+
+				var arrayByIncome = jQuery.extend(true, [], parsedArray).sort(function(a,b) {return (parseInt(a.income) > parseInt(b.income)) ? -1 : ((parseInt(a.income) < parseInt(b.income)) ? 1 : 0);});
+	        	var rich = arrayByIncome.slice(0,9);
+	        	var poor = arrayByIncome.slice(9,18);
+	        	if (rich.findIndex(function (x) { return x.geo == node.geo; }) != -1) {
+	        		var id = 0;
+	        	}
+	        	else {
+	        		var id = 1;
+	        	}
+	        	if (node.vals == "None" || node.vals == null) {
+	          		return "#D3D3D3";
+	          	}
+	        	else if (id == 0) {
+	        		return "#64063E";
+	        	}
+	        	else {
+	        		return "#924712";
+	        	}
+	        }
+	        
+	      });
+		};
+		
+
+		function createCountyGraph(county) {
+			d3.select("#county_graph").select("svg").remove();
+			var width = 1200;
+			var overall_height = 250;
+			var height = 200;
+			var padding = 37;
+
+			var svg = d3.select("#county_graph").append("svg").attr("width", width).attr("height", overall_height);
+      
+      
+      		//DIABETES GRAPH
+      		svg.append("text")
+      		    .attr("x", width/2)
+      			.attr("y", 20)
+      			.style("text-anchor", "middle")
+      			.style("font-size", 20)
+      			.style("font-family", "Raleway")
+      			.text(county.name);
+
+
+			var diabetesMin = d3.min(arrayOfData.map( function (county) { return Number(county.diabetes); }));
+			var diabetesMax = d3.max(arrayOfData.map( function (county) { return Number(county.diabetes); }));
+			var diabetesAvg = d3.mean(arrayOfData.map( function (county) { return Number(county.diabetes); }));
+			var countyProp = county.diabetes;
+			if (countyProp == "None" || isNaN(countyProp)) {
+				countyProp = diabetesMin;
+			}
+
+			formatCountyGraph("diabetes", countyProp, diabetesMin, diabetesMax, diabetesAvg, 0, "Diabetes Percentage", height, width, padding, svg);
+
+			      
+      		//SMOKING GRAPH
+      		var smokingMin = d3.min(arrayOfData.map( function (county) { return Number(county.smoking); }));
+			var smokingMax = d3.max(arrayOfData.map( function (county) { return Number(county.smoking); }));
+			var smokingAvg = d3.mean(arrayOfData.map( function (county) { return Number(county.smoking); }));
+			var countyProp = county.smoking;
+			if (countyProp == "None" || isNaN(countyProp)) {
+				countyProp = smokingMin;
+			}
+
+			formatCountyGraph("smoking", countyProp, smokingMin, smokingMax, smokingAvg, 1, "Smoking Percentage", height, width, padding, svg);
+
+
+      		// DRINKING GRAPH
+			var drinkingMin = d3.min(arrayOfData.map( function (county) { return Number(county.drinking); }));
+			var drinkingMax = d3.max(arrayOfData.map( function (county) { return Number(county.drinking); }));
+			var drinkingAverage = d3.mean(arrayOfData.map( function (county) { return Number(county.drinking); }));
+			var countyProp = county.drinking;
+			if (countyProp == "None"|| isNaN(countyProp)) {
+				countyProp = drinkingMin;
+			}
+
+			formatCountyGraph("drinking", countyProp, drinkingMin, drinkingMax, drinkingAverage, 2, "Drinking Percentage", height, width, padding, svg);
+
+    		//CRIME Graph
+    		var crimeMin = d3.min(arrayOfData.map( function (county) { return Number(county.crime); }));
+			var crimeMax = d3.max(arrayOfData.map( function (county) { return Number(county.crime); }));
+			var crimeAverage = d3.mean(arrayOfData.map( function (county) { return Number(county.crime); }));
+			var countyProp = county.crime;
+			if (countyProp == "None"|| isNaN(countyProp)) {
+				countyProp = crimeMin;
+			}
+
+			formatCountyGraph("crime", countyProp, crimeMin, crimeMax, crimeAverage, 3, "Crime Instances", height, width, padding, svg);
+			
+			
+			// STD graph
+			var stdMin = d3.min(arrayOfData.map( function (county) { return Number(county.std); }));
+			var stdMax = d3.max(arrayOfData.map( function (county) { return Number(county.std); }));
+			var stdAverage = d3.mean(arrayOfData.map( function (county) { return Number(county.std); }));
+			var countyProp = county.std;
+			if (countyProp == "None"|| isNaN(countyProp)) {
+				countyProp = stdMin;
+			}
+
+			formatCountyGraph("std", countyProp, stdMin, stdMax, stdAverage, 4, "STD Instances", height, width, padding, svg);
+
+			//Homicide Graph
+			var homicideMin = d3.min(arrayOfData.map( function (county) { return Number(county.homicide); }));
+			var homicideMax = d3.max(arrayOfData.map( function (county) { return Number(county.homicide); }));
+			var homicideAverage = d3.mean(arrayOfData.map( function (county) { return Number(county.homicide); }));
+			var countyProp = county.homicide;
+			if (countyProp == "None"|| isNaN(countyProp)) {
+				countyProp = homicideMin;
+			}
+			formatCountyGraph("homicide", county.homicide, homicideMin, homicideMax, homicideAverage, 5, "Homicide Percentage", height, width, padding, svg);
+			
+			
+  			// hiv Graph
+      		var hivMin = d3.min(arrayOfData.map( function (county) { return Number(county.hiv); }));
+			var hivMax = d3.max(arrayOfData.map( function (county) { return Number(county.hiv); }));
+			var hivAverage = d3.mean(arrayOfData.map( function (county) { return Number(county.hiv); }));
+			var countyProp = county.hiv;
+			if (countyProp == "None"|| isNaN(countyProp)) {
+				countyProp = hivMin;
+			}
+			formatCountyGraph("hiv", countyProp, hivMin, hivMax, hivAverage, 6, "HIV Instances", height, width, padding, svg);
+
+  			// health cost
+      		var healthcareMin = d3.min(arrayOfData.map( function (county) { return Number(county.health_care_cost); }));
+			var healthcareMax = d3.max(arrayOfData.map( function (county) { return Number(county.health_care_cost); }));
+			var healthcareAverage = d3.mean(arrayOfData.map( function (county) { return Number(county.health_care_cost); }));
+			var countyProp = county.health_care_cost;
+			if (countyProp == "None"|| isNaN(countyProp)) {
+				countyProp = healthcareMin;
+			}
+			formatCountyGraph("health_care_cost", countyProp, healthcareMin, healthcareMax, healthcareAverage, 7, "Healthcare Costs", height, width, padding, svg);
+			
+			
+      		var crashMin = d3.min(arrayOfData.map( function (county) { if(county.car_crash_deaths == "None"){ return; } else { return Number(county.car_crash_deaths); }}));
+			var crashMax = d3.max(arrayOfData.map( function (county) { if(county.car_crash_deaths == "None"){ return; } else { return Number(county.car_crash_deaths); }}));
+			var crashAverage = d3.mean(arrayOfData.map( function (county) { if(county.car_crash_deaths == "None"){ return; } else { return Number(county.car_crash_deaths); }}));
+			var countyProp = county.car_crash_deaths;
+			if (countyProp == "None"|| isNaN(countyProp)) {
+				countyProp = crashMin;
+			}
+
+			formatCountyGraph("car_crash_deaths", countyProp, crashMin, crashMax, crashAverage, 8, "Car Crash Deaths", height, width, padding, svg);
+
+
+			//Alcohol Driving Deaths
+	 		var alcoholMin = d3.min(arrayOfData.map( function (county) { if(county.alcohol_driving_deaths == "None"){ return; } else { return Number(county.alcohol_driving_deaths); }}));
+			var alcoholMax = d3.max(arrayOfData.map( function (county) { if(county.alcohol_driving_deaths == "None"){ return; } else { return Number(county.alcohol_driving_deaths); }}));
+			var alcoholAverage = d3.mean(arrayOfData.map( function (county) { if(county.alcohol_driving_deaths == "None"){ return; } else { return Number(county.alcohol_driving_deaths); }}));
+			var countyProp = county.alcohol_driving_deaths;
+			if (countyProp == "None"|| isNaN(countyProp)) {
+				countyProp = alcoholMin;
+			}
+
+			formatCountyGraph("alcohol_driving_deaths", countyProp, alcoholMin, alcoholMax, alcoholAverage, 9, "Alcohol Driving Deaths", height, width, padding, svg);
+			
+  			// income graph
+      		var incomeMin = d3.min(arrayOfData.map( function (county) { if(county.income == "None"){ return; } else { return Number(county.income); }}));
+			var incomeMax = d3.max(arrayOfData.map( function (county) { if(county.income == "None"){ return; } else { return Number(county.income); }}));
+			var incomeAverage = d3.mean(arrayOfData.map( function (county) { if(county.income == "None"){ return; } else { return Number(county.income); }}));
+
+			var countyProp = county.income;
+			if (countyProp == "None" || isNaN(countyProp)) {
+				countyProp = incomeMin;
+			}
+			formatCountyGraph("income", county.income, incomeMin, incomeMax, incomeAverage, 10, "Median Household Income", height, width, padding, svg);
+     
+		}
+
+
+
+		function formatCountyGraph(propertyString, countyProperty, min, max, average, numberGraph, label, height, width, padding, svg) {
+			var colorScale = createColorScale(propertyString, false);
+			var widthOfSingleGraph = (width - 10)/11;
+
+			var xScale = d3.scale.ordinal().domain([0,1]).rangeRoundBands([padding, widthOfSingleGraph - padding]);
+		    var yScale = d3.scale.linear().domain([min, max]).range([height-padding, padding]);
+
+		   	var xAxis = d3.svg.axis().scale(xScale).orient("bottom")
+		   							.tickFormat(function(d,i) {
+		   								if (i==0) {
+		   									return "County";
+		   								}
+		   								else {
+		   									return "Average";
+		   								}
+		   							});
+		   	var yAxis = d3.svg.axis().scale(yScale).orient("left").ticks(10)
+		   					.tickFormat(function(d) {
+		   								if (d>=1000) {
+		   									return d/1000 + "k";
+		   								}
+		   								else {
+		   									return d;
+		   								}
+		   							});;
+
+		   	svg.append("g").attr("class", "x axis")
+      			.call(xAxis)
+			    .attr("transform", "translate("+(widthOfSingleGraph*numberGraph+padding)+","+(height-padding)+")")
+			    .selectAll("text")
+			    .attr("y", 0)
+			    .attr("x", 9)
+			    .attr("dy", ".35em")
+			    .attr("transform", "rotate(70)")
+			    .style("text-anchor", "start");
+			    
+			svg.append("rect")
+		 	    .style("fill", colorScale(countyProperty))
+			    .attr("x", xScale(0) + padding+widthOfSingleGraph*numberGraph - 1)
+			    .attr("width", xScale.rangeBand())
+			    .attr("y", function () { 
+				    	if (isNaN(countyProperty)) {
+				      		return yScale(min);
+				      	} else {
+				      		return yScale(countyProperty);
+				      	}
+			      	})
+			      .attr("height", 
+			      	function () { 
+			      		if (isNaN(countyProperty)) {
+			      			return height - padding - yScale(min);
+			      		} else {
+			      			return height - padding - yScale(countyProperty);
+			      		}
+			      	});
+		
+			svg.append("rect")
+			    .style("fill", "#d3d2c2")
+			    .attr("x", xScale(1) + widthOfSingleGraph*numberGraph+padding)
+			    .attr("width", xScale.rangeBand())
+			    .attr("y", yScale(average))
+			    .attr("height", height - padding - yScale(average));
+
+
+			svg.append("g")
+			    .attr("class", "y axis")
+			    .attr("transform", "translate(" + (widthOfSingleGraph*numberGraph+xScale(0)+padding) + ",0)")
+			    .call(yAxis)
+			    .append("text")
+			    .text(label)
+			    .attr("x", (xScale(0)-200))
+			    .attr("y", -45)
+			    .attr("dy", ".71em")
+			    .attr("transform", "rotate(-90)");
+
+		}
+	
+	});
+
+
+</script>
+
+</body>
+</html>
+
+

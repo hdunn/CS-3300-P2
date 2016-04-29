@@ -1,0 +1,15 @@
+#Get CSV County data call
+http://db.datausa.io/api/csv/?show=geo&sumlevel=county&year=latest&required=adult_smoking,adult_obesity,excessive_drinking,motor_vehicle_crash_deaths,homicide_rate,sexually_transmitted_infections,health_care_costs,diabetes,hiv_prevalence_rate,violent_crime,alcoholimpaired_driving_deaths
+
+
+#Get Json County Data call
+http://db.datausa.io/api/?show=geo&sumlevel=county&year=latest&required=adult_smoking,adult_obesity,excessive_drinking,motor_vehicle_crash_deaths,homicide_rate,sexually_transmitted_infections,health_care_costs,diabetes,hiv_prevalence_rate,violent_crime,alcoholimpaired_driving_deaths
+
+#Get CSV State Data call
+http://db.datausa.io/api/?show=geo&sumlevel=state&year=latest&required=adult_smoking,adult_obesity,excessive_drinking,motor_vehicle_crash_deaths,homicide_rate,sexually_transmitted_infections,health_care_costs,diabetes,hiv_prevalence_rate,violent_crime,alcoholimpaired_driving_deaths
+
+#Get Json State Data call
+http://db.datausa.io/api/csv/?show=geo&sumlevel=state&year=latest&required=adult_smoking,adult_obesity,excessive_drinking,motor_vehicle_crash_deaths,homicide_rate,sexually_transmitted_infections,health_care_costs,diabetes,hiv_prevalence_rate,violent_crime,alcoholimpaired_driving_deaths
+
+#Get CSV County Income call
+http://db.datausa.io/api/?show=geo&sumlevel=county&year=latest&required=income
